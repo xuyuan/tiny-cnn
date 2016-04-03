@@ -64,7 +64,7 @@ public:
           scale_(float_t(1) / (float_t(1) - dropout_rate_)),
           mask_(obj.mask_)
     {
-        obj.mask_ = nullptr;
+        obj.mask_ = NULL;
     }
 
     virtual ~dropout_layer()
@@ -102,30 +102,30 @@ public:
     }
 
     ///< number of incoming connections for each output unit
-    size_t fan_in_size() const override
+    size_t fan_in_size() const
     {
         return 1;
     }
 
     ///< number of outgoing connections for each input unit
-    size_t fan_out_size() const override
+    size_t fan_out_size() const
     {
         return 1;
     }
 
     ///< number of connections
-    size_t connection_size() const override
+    size_t connection_size() const
     {
         return in_size();
     }
 
-    const vec_t& back_propagation_2nd(const vec_t& in_raw) override 
+    const vec_t& back_propagation_2nd(const vec_t& in_raw)
     {
         prev_delta2_ = in_raw;
         return prev_->back_propagation_2nd(prev_delta2_);
     }
 
-    const vec_t& back_propagation(const vec_t& current_delta, size_t worker_index) override 
+    const vec_t& back_propagation(const vec_t& current_delta, size_t worker_index)
     {
         vec_t& prev_delta = prev_delta_[worker_index];
         bool* mask = &mask_[worker_index * CNN_TASK_SIZE];
@@ -136,7 +136,7 @@ public:
         return prev_->back_propagation(prev_delta, worker_index);
     }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t worker_index) override 
+    const vec_t& forward_propagation(const vec_t& in, size_t worker_index)
     {
         vec_t& out = output_[worker_index];
         vec_t& a = a_[worker_index];
@@ -159,12 +159,12 @@ public:
     /**
      * set dropout-context (training-phase or test-phase)
      **/
-    void set_context(net_phase ctx) override
+    void set_context(net_phase ctx)
     {
         phase_ = ctx;
     }
 
-    std::string layer_type() const override { return "dropout"; }
+    std::string layer_type() const { return "dropout"; }
 
     const bool* get_mask() const { return mask_; }
 

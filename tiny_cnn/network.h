@@ -58,24 +58,37 @@ struct result {
         auto all_labels = labels();
 
         os << std::setw(5) << "*" << " ";
-        for (auto c : all_labels) 
-            os << std::setw(5) << c << " ";
+        //for (auto c : all_labels) 
+        //    os << std::setw(5) << c << " ";
+        for (auto c=all_labels.begin(); c!=all_labels.end(); ++c) 
+            os << std::setw(5) << *c << " ";
         os << std::endl;
 
-        for (auto r : all_labels) {
+        /*for (auto r : all_labels) {
             os << std::setw(5) << r << " ";           
             for (auto c : all_labels) 
                 os << std::setw(5) << confusion_matrix[r][c] << " ";
+            os << std::endl;
+        }*/
+        for (auto r=all_labels.begin(); r!=all_labels.end(); ++r) {
+            os << std::setw(5) << *r << " ";    
+            for (auto c=all_labels.begin(); c!=all_labels.end(); ++c) 
+                os << std::setw(5) << confusion_matrix[*r][*c] << " ";
             os << std::endl;
         }
     }
 
     std::set<label_t> labels() const {
         std::set<label_t> all_labels;
-        for (auto r : confusion_matrix) {
+        /*for (auto r : confusion_matrix) {
             all_labels.insert(r.first);
             for (auto c : r.second)
                 all_labels.insert(c.first);
+        }*/
+        for (auto r=confusion_matrix.begin(); r!=confusion_matrix.end(); ++r) {
+            all_labels.insert(r->first);
+            for (auto c=r->second.begin(); c!=r->second.end(); ++c)
+                all_labels.insert(c->first);
         }
         return all_labels;
     }
@@ -146,9 +159,10 @@ public:
      **/
     template <typename Range>
     vec_t        predict(const Range& in) {
-        using std::begin; // for ADL
-        using std::end;
-        return predict(vec_t(begin(in), end(in)));
+        //using std::begin; // for ADL
+        //using std::end;
+        //return predict(vec_t(begin(in), end(in)));
+        return predict(vec_t(in.begin(), in.end()));
     }
 
     /**
@@ -399,7 +413,8 @@ public:
 protected:
     float_t fprop_max(const vec_t& in, int idx = 0) {
         const vec_t& prediction = fprop(in, idx);
-        return *std::max_element(std::begin(prediction), std::end(prediction));
+        //return *std::max_element(std::begin(prediction), std::end(prediction));
+        return *std::max_element(prediction.begin(), prediction.end());
     }
 
     label_t fprop_max_index(const vec_t& in, int idx = 0) {

@@ -43,21 +43,21 @@ class layer_base {
 public:
     friend void connection_mismatch(const layer_base& from, const layer_base& to);
 
-    virtual ~layer_base() = default;
+    virtual ~layer_base() {};
 
     layer_base(cnn_size_t in_dim, cnn_size_t out_dim, size_t weight_dim, size_t bias_dim)
-        : parallelize_(true), next_(nullptr), prev_(nullptr),
+        : parallelize_(true), next_(NULL), prev_(NULL),
           weight_init_(std::make_shared<weight_init::xavier>()),
           bias_init_(std::make_shared<weight_init::constant>(float_t(0))) {
         set_size(in_dim, out_dim, weight_dim, bias_dim);
     }
 
     layer_base(const layer_base&) = default;
-    layer_base &operator =(const layer_base&) = default;
+    layer_base &operator =(const layer_base&);
 
 #if !defined(_MSC_VER) || (_MSC_VER >= 1900) // default generation of move constructor is unsupported in VS2013
     layer_base(layer_base&&) = default;
-    layer_base &operator = (layer_base&&) = default;
+    layer_base &operator = (layer_base&&);
 #endif
 
     void connect(std::shared_ptr<layer_base>& tail) {
@@ -85,8 +85,10 @@ public:
     }
 
     void divide_hessian(int denominator) {
-        for (auto& w : Whessian_) w /= denominator;
-        for (auto& b : bhessian_) b /= denominator;
+        //for (auto& w : Whessian_) w /= denominator;
+        for(auto w=Whessian_.begin(); w!=Whessian_.end(); ++w) (*w) /= denominator;
+        //for (auto& b : bhessian_) b /= denominator;
+        for(auto b=bhessian_.begin(); b!=bhessian_.end(); ++b) (*b) /= denominator;
     }
 
     /////////////////////////////////////////////////////////////////////////
@@ -153,13 +155,17 @@ public:
     // save/load
     virtual void save(std::ostream& os) const {
         if (is_exploded()) throw nn_error("failed to save weights because of infinite weight");
-        for (auto w : W_) os << w << " ";
-        for (auto b : b_) os << b << " ";
+        //for (auto w : W_) os << w << " ";
+        for (auto w=W_.begin(); w!=W_.end(); ++w) os << *w << " ";
+        //for (auto b : b_) os << b << " ";
+        for (auto b=b_.begin(); b!=b_.end(); ++b) os << *b << " ";
     }
 
     virtual void load(std::istream& is) {
-        for (auto& w : W_) is >> w;
-        for (auto& b : b_) is >> b;
+        //for (auto& w : W_) is >> w;
+        for (auto w=W_.begin(); w!=W_.end(); ++w) is >> *w;
+        //for (auto& b : b_) is >> b;
+        for (auto b=b_.begin(); b!=b_.end(); ++b) is >> *b;
     }
 
     /////////////////////////////////////////////////////////////////////////
@@ -294,11 +300,16 @@ private:
         bhessian_.resize(bias_dim);
         prev_delta2_.resize(in_dim);
 
-        for (auto& o : output_)     o.resize(out_dim);
-        for (auto& a : a_)          a.resize(out_dim);
-        for (auto& p : prev_delta_) p.resize(in_dim);
-        for (auto& dw : dW_) dw.resize(weight_dim);
-        for (auto& db : db_) db.resize(bias_dim);
+        //for (auto& o : output_)     o.resize(out_dim);
+        for (int i=0; i<CNN_TASK_SIZE; i++)     output_[i].resize(out_dim);
+        //for (auto& a : a_)          a.resize(out_dim);
+        for (int i=0; i<CNN_TASK_SIZE; i++)        a_[i].resize(out_dim);
+        //for (auto& p : prev_delta_) p.resize(in_dim);
+        for (int i=0; i<CNN_TASK_SIZE; i++) prev_delta_[i].resize(in_dim);
+        //for (auto& dw : dW_) dw.resize(weight_dim);
+        for (int i=0; i<CNN_TASK_SIZE; i++) dW_[i].resize(weight_dim);
+        //for (auto& db : db_) db.resize(bias_dim);
+        for (int i=0; i<CNN_TASK_SIZE; i++) db_[i].resize(bias_dim);
     }
 };
 
@@ -308,7 +319,7 @@ public:
     layer(cnn_size_t in_dim, cnn_size_t out_dim, size_t weight_dim, size_t bias_dim)
         : layer_base(in_dim, out_dim, weight_dim, bias_dim) {}
 
-    activation::function& activation_function() override { return h_; }
+    activation::function& activation_function() { return h_; }
 protected:
     Activation h_;
 };

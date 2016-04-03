@@ -65,32 +65,33 @@ public:
         init_connection();
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return out2in_[0].size();
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return 1;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return out2in_[0].size() * out2in_.size();
     }
 
-    virtual const vec_t& forward_propagation(const vec_t& in, size_t index) override {
+    virtual const vec_t& forward_propagation(const vec_t& in, size_t index) {
         vec_t& out = output_[index];
         vec_t& a = a_[index];
         std::vector<cnn_size_t>& max_idx = out2inmax_[index];
 
         for_(parallelize_, 0, size_t(out_size_), [&](const blocked_range& r) {
             for (int i = r.begin(); i < r.end(); i++) {
-                const auto& in_index = out2in_[i];
+                const auto& in_index = this->out2in_[i];
                 float_t max_value = std::numeric_limits<float_t>::lowest();
                 
-                for (auto j : in_index) {
-                    if (in[j] > max_value) {
-                        max_value = in[j];
-                        max_idx[i] = j;
+                //for (auto j : in_index) {
+                for(auto j=in_index.begin(); j!=in_index.end(); ++j) {
+                    if (in[*j] > max_value) {
+                        max_value = in[*j];
+                        max_idx[i] = *j;
                     }
                 }
                 a[i] = max_value;
@@ -98,12 +99,12 @@ public:
         });
 
         for_i(parallelize_, out_size_, [&](int i) {
-            out[i] = h_.f(a, i);
+            out[i] = this->h_.f(a, i);
         });
         return next_ ? next_->forward_propagation(out, index) : out;
     }
 
-    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) override {
+    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) {
         const vec_t& prev_out = prev_->output(static_cast<int>(index));
         const activation::function& prev_h = prev_->activation_function();
         vec_t& prev_delta = prev_delta_[index];
@@ -111,14 +112,14 @@ public:
 
         for_(parallelize_, 0, size_t(in_size_), [&](const blocked_range& r) {
             for (int i = r.begin(); i != r.end(); i++) {
-                cnn_size_t outi = in2out_[i];
+                cnn_size_t outi = this->in2out_[i];
                 prev_delta[i] = (max_idx[outi] == i) ? current_delta[outi] * prev_h.df(prev_out[i]) : float_t(0);
             }
         });
         return prev_->back_propagation(prev_delta_[index], index);
     }
 
-    const vec_t& back_propagation_2nd(const vec_t& current_delta2) override {
+    const vec_t& back_propagation_2nd(const vec_t& current_delta2) {
         const vec_t& prev_out = prev_->output(0);
         const activation::function& prev_h = prev_->activation_function();
 
@@ -133,9 +134,9 @@ public:
         return vec2image<unsigned char>(output_[worker_index], out_);
     }
 
-    index3d<cnn_size_t> in_shape() const override { return in_; }
-    index3d<cnn_size_t> out_shape() const override { return out_; }
-    std::string layer_type() const override { return "max-pool"; }
+    index3d<cnn_size_t> in_shape() const { return in_; }
+    index3d<cnn_size_t> out_shape() const { return out_; }
+    std::string layer_type() const { return "max-pool"; }
     size_t pool_size() const {return pool_size_;}
 
 private:

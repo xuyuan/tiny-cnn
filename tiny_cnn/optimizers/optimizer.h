@@ -45,7 +45,7 @@ struct optimizer {
 #ifndef CNN_DEFAULT_ASSIGNMENT_OPERATOR_UNAVAILABLE
     optimizer &operator =(optimizer &&) = default;
 #endif
-    virtual ~optimizer() = default;
+    virtual ~optimizer() {};
 
     bool requires_hessian() const { return usesHessian; } // vc2012 doesn't support constexpr
     virtual void reset() {} // override to implement pre-learning action
@@ -54,8 +54,9 @@ struct optimizer {
 // helper class to hold N values for each weight
 template <int N, bool usesHessian = false>
 struct stateful_optimizer : public optimizer<usesHessian> {
-    void reset() override {
-        for (auto& e : E_) e.clear();
+    void reset() {
+        //for (auto& e : E_) e.clear();
+        for(int i=0; i<N; i++) E_[i].clear();
     }
 
 protected:

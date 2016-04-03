@@ -36,7 +36,8 @@ namespace tiny_cnn {
 class nn_error : public std::exception {
 public:
     explicit nn_error(const std::string& msg) : msg_(msg) {}
-    const char* what() const throw() override { return msg_.c_str(); }
+    const char* what() const throw() { return msg_.c_str(); }
+    virtual ~nn_error() throw() {}
 private:
     std::string msg_;
 };

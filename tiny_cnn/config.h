@@ -40,7 +40,7 @@
 /**
  * define to enable sse2 vectorization
  */
-//#define CNN_USE_SSE
+#define CNN_USE_SSE
 
 /**
  * define to enable OMP parallelization

@@ -221,24 +221,24 @@ public:
     }
 
     ///< number of incoming connections for each output unit
-    virtual size_t fan_in_size() const override
+    virtual size_t fan_in_size() const
     {
         return weight_.width_ * weight_.height_ * in_.depth_;
     }
 
     ///< number of outgoing connections for each input unit
-    virtual size_t fan_out_size() const override
+    virtual size_t fan_out_size() const
     {
         return (weight_.width_ / w_stride_) * (weight_.height_ / h_stride_) * out_.depth_;
     }
 
     ///< number of connections
-    virtual size_t connection_size() const override
+    virtual size_t connection_size() const
     {
         return out_.size() * fan_in_size();
     }
 
-    virtual const vec_t& back_propagation_2nd(const vec_t& current_delta2) override
+    virtual const vec_t& back_propagation_2nd(const vec_t& current_delta2)
     {
         const vec_t& prev_out = *(prev_out_padded_[0]);
         const activation::function& prev_h = prev_->activation_function();
@@ -248,22 +248,23 @@ public:
 
         // accumulate dw
         for_i(in_.depth_, [&](int inc) {
-            for (cnn_size_t outc = 0; outc < out_.depth_; outc++) {
+        
+            for (cnn_size_t outc = 0; outc < this->out_.depth_; outc++) {
 
-                if (!tbl_.is_connected(outc, inc)) continue;
+                if (!this->tbl_.is_connected(outc, inc)) continue;
 
-                for (cnn_size_t wy = 0; wy < weight_.height_; wy++) {
-                    for (cnn_size_t wx = 0; wx < weight_.width_; wx++) {
+                for (cnn_size_t wy = 0; wy < this->weight_.height_; wy++) {
+                    for (cnn_size_t wx = 0; wx < this->weight_.width_; wx++) {
                         float_t dst = float_t(0);
-                        const float_t * prevo = &prev_out[in_padded_.get_index(wx, wy, inc)];
-                        const float_t * delta = &current_delta2[out_.get_index(0, 0, outc)];
+                        const float_t * prevo = &prev_out[this->in_padded_.get_index(wx, wy, inc)];
+                        const float_t * delta = &current_delta2[this->out_.get_index(0, 0, outc)];
 
-                        for (cnn_size_t y = 0; y < out_.height_; y++) {
-                            for (cnn_size_t x = 0; x < out_.width_; x++) {
-                                dst += sqr(prevo[y * in_padded_.width_ + x]) * delta[y * out_.width_ + x];
+                        for (cnn_size_t y = 0; y < this->out_.height_; y++) {
+                            for (cnn_size_t x = 0; x < this->out_.width_; x++) {
+                                dst += sqr(prevo[y * this->in_padded_.width_ + x]) * delta[y * this->out_.width_ + x];
                             }
                         }
-                        Whessian_[weight_.get_index(wx, wy, in_.depth_ * outc + inc)] += dst;
+                        this->Whessian_[this->weight_.get_index(wx, wy, this->in_.depth_ * outc + inc)] += dst;
                     }
                 }
             }
@@ -279,22 +280,22 @@ public:
 
         // propagate delta to previous layer
         for_i(in_.depth_, [&](int inc) {
-            for (cnn_size_t outc = 0; outc < out_.depth_; outc++) {
-                if (!tbl_.is_connected(outc, inc)) continue;
+            for (cnn_size_t outc = 0; outc < this->out_.depth_; outc++) {
+                if (!this->tbl_.is_connected(outc, inc)) continue;
 
-                const float_t *pw = &W_[weight_.get_index(0, 0, in_.depth_ * outc + inc)];
-                const float_t *pdelta_src = &current_delta2[out_.get_index(0, 0, outc)];
-                float_t *pdelta_dst = &(*prev_delta)[in_padded_.get_index(0, 0, inc)];
+                const float_t *pw = &(this->W_)[this->weight_.get_index(0, 0, this->in_.depth_ * outc + inc)];
+                const float_t *pdelta_src = &current_delta2[this->out_.get_index(0, 0, outc)];
+                float_t *pdelta_dst = &(*prev_delta)[this->in_padded_.get_index(0, 0, inc)];
 
-                for (cnn_size_t y = 0; y < out_.height_; y++) {
-                    for (cnn_size_t x = 0; x < out_.width_; x++) {
+                for (cnn_size_t y = 0; y < this->out_.height_; y++) {
+                    for (cnn_size_t x = 0; x < this->out_.width_; x++) {
                         const float_t * ppw = pw;
-                        const float_t ppdelta_src = pdelta_src[y * out_.width_ + x];
-                        float_t * ppdelta_dst = pdelta_dst + y * h_stride_ * in_padded_.width_ + x * w_stride_;
+                        const float_t ppdelta_src = pdelta_src[y * this->out_.width_ + x];
+                        float_t * ppdelta_dst = pdelta_dst + y * this->h_stride_ * this->in_padded_.width_ + x * this->w_stride_;
 
-                        for (cnn_size_t wy = 0; wy < weight_.height_; wy++) {
-                            for (cnn_size_t wx = 0; wx < weight_.width_; wx++) {
-                                ppdelta_dst[wy * in_padded_.width_ + wx] += sqr(*ppw++) * ppdelta_src;
+                        for (cnn_size_t wy = 0; wy < this->weight_.height_; wy++) {
+                            for (cnn_size_t wx = 0; wx < this->weight_.width_; wx++) {
+                                ppdelta_dst[wy * this->in_padded_.width_ + wx] += sqr(*ppw++) * ppdelta_src;
                             }
                         }
                     }
@@ -316,7 +317,7 @@ public:
         return prev_->back_propagation_2nd(prev_delta2_);
     }
 
-    virtual const vec_t& forward_propagation(const vec_t& in_raw, size_t worker_index) override
+    virtual const vec_t& forward_propagation(const vec_t& in_raw, size_t worker_index)
     {
         copy_and_pad_input(in_raw, static_cast<int>(worker_index));
 
@@ -327,39 +328,39 @@ public:
         std::fill(a.begin(), a.end(), float_t(0));
 
         for_i(parallelize_, out_.depth_, [&](int o) {
-            for (cnn_size_t inc = 0; inc < in_.depth_; inc++) {
-                if (!tbl_.is_connected(o, inc)) continue;
+            for (cnn_size_t inc = 0; inc < this->in_.depth_; inc++) {
+                if (!this->tbl_.is_connected(o, inc)) continue;
 
-                const float_t *pw = &this->W_[weight_.get_index(0, 0, in_.depth_ * o + inc)];
-                const float_t *pi = &in[in_padded_.get_index(0, 0, inc)];
-                float_t *pa = &a[out_.get_index(0, 0, o)];
+                const float_t *pw = &this->W_[this->weight_.get_index(0, 0, this->in_.depth_ * o + inc)];
+                const float_t *pi = &in[this->in_padded_.get_index(0, 0, inc)];
+                float_t *pa = &a[this->out_.get_index(0, 0, o)];
 
-                for (cnn_size_t y = 0; y < out_.height_; y++) {
-                    for (cnn_size_t x = 0; x < out_.width_; x++) {
+                for (cnn_size_t y = 0; y < this->out_.height_; y++) {
+                    for (cnn_size_t x = 0; x < this->out_.width_; x++) {
                         const float_t * ppw = pw;
-                        const float_t * ppi = pi + (y * h_stride_) * in_padded_.width_ + x * w_stride_;
+                        const float_t * ppi = pi + (y * this->h_stride_) * this->in_padded_.width_ + x * this->w_stride_;
                         float_t sum = float_t(0);
 
                         // should be optimized for small kernel(3x3,5x5)
-                        for (cnn_size_t wy = 0; wy < weight_.height_; wy++) {
-                            for (cnn_size_t wx = 0; wx < weight_.width_; wx++) {
-                                sum += *ppw++ * ppi[wy * in_padded_.width_ + wx];
+                        for (cnn_size_t wy = 0; wy < this->weight_.height_; wy++) {
+                            for (cnn_size_t wx = 0; wx < this->weight_.width_; wx++) {
+                                sum += *ppw++ * ppi[wy * this->in_padded_.width_ + wx];
                             }
                         }
-                        pa[y * out_.width_ + x] += sum;
+                        pa[y * this->out_.width_ + x] += sum;
                     }
                 }
             }
 
             if (!this->b_.empty()) {
-                float_t *pa = &a[out_.get_index(0, 0, o)];
+                float_t *pa = &a[this->out_.get_index(0, 0, o)];
                 float_t b = this->b_[o];
-                std::for_each(pa, pa + out_.width_ * out_.height_, [&](float_t& f) { f += b; });
+                std::for_each(pa, pa + this->out_.width_ * this->out_.height_, [&](float_t& f) { f += b; });
             }
         });
 
         for_i(parallelize_, out_size_, [&](int i) {
-            out[i] = h_.f(a, i);
+            out[i] = this->h_.f(a, i);
         });
 
         CNN_LOG_VECTOR(in_raw, "[pc]in");
@@ -374,7 +375,7 @@ public:
         return W_[weight_.get_index(kernel_x, kernel_y, in_.depth_ * out_channel + in_channel)];
     }
 
-    const vec_t& back_propagation(const vec_t& curr_delta, size_t index) override {
+    const vec_t& back_propagation(const vec_t& curr_delta, size_t index) {
         const vec_t& prev_out = *(prev_out_padded_[index]);
         const activation::function& prev_h = prev_->activation_function();
         vec_t* prev_delta = (pad_type_ == padding::same) ? &prev_delta_padded_[index] : &prev_delta_[index];
@@ -385,22 +386,22 @@ public:
 
         // propagate delta to previous layer
         for_i(in_.depth_, [&](int inc) {
-            for (cnn_size_t outc = 0; outc < out_.depth_; outc++) {
-                if (!tbl_.is_connected(outc, inc)) continue;
+            for (cnn_size_t outc = 0; outc < this->out_.depth_; outc++) {
+                if (!this->tbl_.is_connected(outc, inc)) continue;
 
-                const float_t *pw = &this->W_[weight_.get_index(0, 0, in_.depth_ * outc + inc)];
-                const float_t *pdelta_src = &curr_delta[out_.get_index(0, 0, outc)];
-                float_t *pdelta_dst = &(*prev_delta)[in_padded_.get_index(0, 0, inc)];
+                const float_t *pw = &this->W_[this->weight_.get_index(0, 0, this->in_.depth_ * outc + inc)];
+                const float_t *pdelta_src = &curr_delta[this->out_.get_index(0, 0, outc)];
+                float_t *pdelta_dst = &(*prev_delta)[this->in_padded_.get_index(0, 0, inc)];
 
-                for (cnn_size_t y = 0; y < out_.height_; y++) {
-                    for (cnn_size_t x = 0; x < out_.width_; x++) {
+                for (cnn_size_t y = 0; y < this->out_.height_; y++) {
+                    for (cnn_size_t x = 0; x < this->out_.width_; x++) {
                         const float_t * ppw = pw;
-                        const float_t ppdelta_src = pdelta_src[y * out_.width_ + x];
-                        float_t * ppdelta_dst = pdelta_dst + y * h_stride_ * in_padded_.width_ + x * w_stride_;
+                        const float_t ppdelta_src = pdelta_src[y * this->out_.width_ + x];
+                        float_t * ppdelta_dst = pdelta_dst + y * this->h_stride_ * this->in_padded_.width_ + x * this->w_stride_;
 
-                        for (cnn_size_t wy = 0; wy < weight_.height_; wy++) {
-                            for (cnn_size_t wx = 0; wx < weight_.width_; wx++) {
-                                ppdelta_dst[wy * in_padded_.width_ + wx] += *ppw++ * ppdelta_src;
+                        for (cnn_size_t wy = 0; wy < this->weight_.height_; wy++) {
+                            for (cnn_size_t wx = 0; wx < this->weight_.width_; wx++) {
+                                ppdelta_dst[wy * this->in_padded_.width_ + wx] += *ppw++ * ppdelta_src;
                             }
                         }
                     }
@@ -414,20 +415,20 @@ public:
 
         // accumulate dw
         for_i(in_.depth_, [&](int inc) {
-            for (cnn_size_t outc = 0; outc < out_.depth_; outc++) {
+            for (cnn_size_t outc = 0; outc < this->out_.depth_; outc++) {
 
-                if (!tbl_.is_connected(outc, inc)) continue;
+                if (!this->tbl_.is_connected(outc, inc)) continue;
 
-                for (cnn_size_t wy = 0; wy < weight_.height_; wy++) {
-                    for (cnn_size_t wx = 0; wx < weight_.width_; wx++) {
+                for (cnn_size_t wy = 0; wy < this->weight_.height_; wy++) {
+                    for (cnn_size_t wx = 0; wx < this->weight_.width_; wx++) {
                         float_t dst = float_t(0);
-                        const float_t * prevo = &prev_out[in_padded_.get_index(wx, wy, inc)];
-                        const float_t * delta = &curr_delta[out_.get_index(0, 0, outc)];
+                        const float_t * prevo = &prev_out[this->in_padded_.get_index(wx, wy, inc)];
+                        const float_t * delta = &curr_delta[this->out_.get_index(0, 0, outc)];
 
-                        for (cnn_size_t y = 0; y < out_.height_; y++) {
-                            dst += vectorize::dot(prevo + y * in_padded_.width_, delta + y * out_.width_, out_.width_);
+                        for (cnn_size_t y = 0; y < this->out_.height_; y++) {
+                            dst += vectorize::dot(prevo + y * this->in_padded_.width_, delta + y * this->out_.width_, this->out_.width_);
                         }
-                        dW[weight_.get_index(wx, wy, in_.depth_ * outc + inc)] += dst;
+                        dW[this->weight_.get_index(wx, wy, this->in_.depth_ * outc + inc)] += dst;
                     }
                 }
             }
@@ -452,9 +453,9 @@ public:
         return prev_->back_propagation(prev_delta_[index], index);
     }
 
-    index3d<cnn_size_t> in_shape() const override { return in_; }
-    index3d<cnn_size_t> out_shape() const override { return out_; }
-    std::string layer_type() const override { return "conv"; }
+    index3d<cnn_size_t> in_shape() const { return in_; }
+    index3d<cnn_size_t> out_shape() const { return out_; }
+    std::string layer_type() const { return "conv"; }
 
     image<> weight_to_image() const {
         image<> img;
@@ -497,7 +498,7 @@ private:
                 prev_delta_padded_[i].resize(in_padded_.size(), float_t(0));               
             }
             else {
-                prev_out_buf_[i] = nullptr;
+                prev_out_buf_[i] = NULL;
             }
         }
         if (pad_type_ == padding::same) {

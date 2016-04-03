@@ -117,7 +117,7 @@ inline layer_size_t get_kernel_size_2d(const caffe::ConvolutionParameter& p) {
 
 inline std::shared_ptr<layer_base> create_max_pool(int pool_size, int stride, const shape_t& bottom_shape, shape_t *top_shape)
 {
-    using max_pool = max_pooling_layer<activation::identity>;
+    typedef max_pooling_layer<activation::identity> max_pool;
     auto mp = std::make_shared<max_pool>(bottom_shape.width_, bottom_shape.height_, bottom_shape.depth_, pool_size, stride);
     *top_shape = mp->out_shape();
     return mp;
@@ -125,7 +125,7 @@ inline std::shared_ptr<layer_base> create_max_pool(int pool_size, int stride, co
 
 inline std::shared_ptr<layer_base> create_ave_pool(int pool_size, int stride, const shape_t& bottom_shape, shape_t *top_shape)
 {
-    using ave_pool = average_pooling_layer<activation::identity>;
+    typedef average_pooling_layer<activation::identity> ave_pool;
     auto ap = std::make_shared<ave_pool>(bottom_shape.width_, bottom_shape.height_, bottom_shape.depth_, pool_size, stride);
 
     // tiny-cnn has trainable parameter in average-pooling layer
@@ -214,7 +214,7 @@ inline void load_weights_fullyconnected(const caffe::LayerParameter& src, layer_
 }
 
 inline std::shared_ptr<layer_base> create_fullyconnected(const caffe::LayerParameter& layer, const shape_t& bottom_shape, shape_t *top_shape) {
-    using fc_layer = fully_connected_layer<activation::identity>;
+    typedef fully_connected_layer<activation::identity> fc_layer;
 
     if (!layer.has_inner_product_param())
         throw std::runtime_error("inner-product param missing");
@@ -298,7 +298,7 @@ inline void load_weights_pool(const caffe::LayerParameter& src, layer_base *dst)
 }
 
 inline std::shared_ptr<layer_base> create_lrn(const caffe::LayerParameter& layer, const shape_t& bottom_shape, shape_t *top_shape) {
-    using lrn_layer = lrn_layer<activation::identity>;
+    typedef lrn_layer<activation::identity> lrn_layer;
 
     if (!layer.has_lrn_param())
         throw std::runtime_error("lrn param missing");
@@ -338,7 +338,7 @@ inline std::shared_ptr<layer_base> create_dropout(const caffe::LayerParameter& l
 }
 
 inline std::shared_ptr<layer_base> create_convlayer(const caffe::LayerParameter& layer, const shape_t& bottom_shape, shape_t *top_shape) {
-    using conv_layer = convolutional_layer<activation::identity>;
+    typedef convolutional_layer<activation::identity> conv_layer;
 
     if (!layer.has_convolution_param())
         throw std::runtime_error("convolution param missing");

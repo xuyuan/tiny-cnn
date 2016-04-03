@@ -50,25 +50,25 @@ public:
         : Base(in_width*in_height*in_channels, in_width*in_height*in_channels, 0, 0),
         in_shape_(in_width, in_height, in_channels), size_(local_size), alpha_(alpha), beta_(beta), region_(region), in_square_(in_shape_.area()) {}
 
-    size_t param_size() const override {
+    size_t param_size() const {
         return 0;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return this->in_size() * size_;
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return size_;
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return size_;
     }
 
-    std::string layer_type() const override { return "norm"; }
+    std::string layer_type() const { return "norm"; }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t index) override {
+    const vec_t& forward_propagation(const vec_t& in, size_t index) {
         vec_t& a = a_[index];
         vec_t& out = output_[index];
 
@@ -80,18 +80,18 @@ public:
         }
 
         for_i(parallelize_, out_size_, [&](int i) {
-            out[i] = h_.f(a, i);
+            out[i] = this->h_.f(a, i);
         });
         return next_ ? next_->forward_propagation(out, index) : out;
     }
 
-    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) override {
+    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) {
         CNN_UNREFERENCED_PARAMETER(current_delta);
         CNN_UNREFERENCED_PARAMETER(index);
         throw nn_error("not implemented");
     }
 
-    const vec_t& back_propagation_2nd(const vec_t& current_delta2) override {
+    const vec_t& back_propagation_2nd(const vec_t& current_delta2) {
         CNN_UNREFERENCED_PARAMETER(current_delta2);
         throw nn_error("not implemented");
     }

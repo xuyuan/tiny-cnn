@@ -47,56 +47,56 @@ public:
         : Base(dim, dim, 0, 0),
         scale_(scale), bias_(bias) {}
 
-    size_t param_size() const override {
+    size_t param_size() const {
         return 0;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return this->in_size();
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return 1;
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return 1;
     }
 
-    std::string layer_type() const override { return "linear"; }
+    std::string layer_type() const { return "linear"; }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t index) override {
+    const vec_t& forward_propagation(const vec_t& in, size_t index) {
         vec_t& a = a_[index];
         vec_t& out = output_[index];
 
         for_i(parallelize_, out_size_, [&](int i) {
-            a[i] = scale_ * in[i] + bias_;
+            a[i] = this->scale_ * in[i] + this->bias_;
         });
         for_i(parallelize_, out_size_, [&](int i) {
-            out[i] = h_.f(a, i);
+            out[i] = this->h_.f(a, i);
         });
 
         return next_ ? next_->forward_propagation(out, index) : out;
     }
 
-    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) override {
+    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) {
         const vec_t& prev_out = prev_->output(index);
         const activation::function& prev_h = prev_->activation_function();
         vec_t& prev_delta = prev_delta_[index];
 
         for_i(parallelize_, out_size_, [&](int i) {
-            prev_delta[i] = current_delta[i] * scale_ * prev_h.df(prev_out[i]);
+            prev_delta[i] = current_delta[i] * this->scale_ * prev_h.df(prev_out[i]);
         });
 
         return prev_->back_propagation(prev_delta_[index], index);
     }
 
-    const vec_t& back_propagation_2nd(const vec_t& current_delta2) override {
+    const vec_t& back_propagation_2nd(const vec_t& current_delta2) {
         const vec_t& prev_out = prev_->output(0);
         const activation::function& prev_h = prev_->activation_function();
 
         for_i(parallelize_, out_size_, [&](int i) {
-            prev_delta2_[i] = current_delta2[i] * sqr(scale_ * prev_h.df(prev_out[i]));
+            this->prev_delta2_[i] = current_delta2[i] * sqr(this->scale_ * prev_h.df(prev_out[i]));
         });
 
         return prev_->back_propagation_2nd(prev_delta2_);

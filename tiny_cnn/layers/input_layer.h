@@ -37,34 +37,34 @@ public:
 
     input_layer() : Base(0, 0, 0, 0) {}
 
-    cnn_size_t in_size() const override { return next_ ? next_->in_size(): static_cast<cnn_size_t>(0); }
+    cnn_size_t in_size() const { return next_ ? next_->in_size(): static_cast<cnn_size_t>(0); }
 
-    index3d<cnn_size_t> in_shape() const override { return next_ ? next_->in_shape() : index3d<cnn_size_t>(0, 0, 0); }
-    index3d<cnn_size_t> out_shape() const override { return next_ ? next_->out_shape() : index3d<cnn_size_t>(0, 0, 0); }
-    std::string layer_type() const override { return next_ ? next_->layer_type() : "input"; }
+    index3d<cnn_size_t> in_shape() const { return next_ ? next_->in_shape() : index3d<cnn_size_t>(0, 0, 0); }
+    index3d<cnn_size_t> out_shape() const { return next_ ? next_->out_shape() : index3d<cnn_size_t>(0, 0, 0); }
+    std::string layer_type() const { return next_ ? next_->layer_type() : "input"; }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t index) override {
+    const vec_t& forward_propagation(const vec_t& in, size_t index) {
         output_[index] = in;
         return next_ ? next_->forward_propagation(in, index) : output_[index];
     }
 
-    const vec_t& back_propagation(const vec_t& current_delta, size_t /*index*/) override {
+    const vec_t& back_propagation(const vec_t& current_delta, size_t /*index*/) {
         return current_delta;
     }
 
-    const vec_t& back_propagation_2nd(const vec_t& current_delta2) override {
+    const vec_t& back_propagation_2nd(const vec_t& current_delta2) {
         return current_delta2;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return in_size_;
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return 1;
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return 1;
     }
 };

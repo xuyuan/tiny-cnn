@@ -129,8 +129,10 @@ inline bool is_little_endian() {
 
 template<typename T>
 size_t max_index(const T& vec) {
-    auto begin_iterator = std::begin(vec);
-    return std::max_element(begin_iterator, std::end(vec)) - begin_iterator;
+    //auto begin_iterator = std::begin(vec);
+    //return std::max_element(begin_iterator, std::end(vec)) - begin_iterator;
+    auto begin_iterator = vec.begin();
+    return std::max_element(begin_iterator, vec.end()) - begin_iterator;
 }
 
 template<typename T, typename U>
@@ -194,6 +196,13 @@ void parallel_for(int begin, int end, const Func& f, int /*grainsize*/) {
 
 template<typename Func>
 void parallel_for(int start, int end, const Func &f, int /*grainsize*/) {
+
+// no parallel
+    for (int i=start; i<end; ++i)
+        f(blocked_range(i,i+1));
+
+
+/*
     int nthreads = std::thread::hardware_concurrency();
     int blockSize = (end - start) / nthreads;
     if (blockSize*nthreads < end - start)
@@ -216,8 +225,13 @@ void parallel_for(int start, int end, const Func &f, int /*grainsize*/) {
         if (blockEnd > end) blockEnd = end;
     }
 
-    for (auto &future : futures)
-        future.wait();
+    //for (auto &future : futures)
+    //    future.wait();
+    for (auto iter=futures.begin(); iter!=futures.end(); ++iter) {
+	iter->wait();
+    }
+    
+*/
 }
 
 #endif
@@ -274,8 +288,10 @@ inline bool isfinite(float_t x) {
 }
 
 template <typename Container> inline bool has_infinite(const Container& c) {
-    for (auto v : c)
-        if (!isfinite(v)) return true;
+    //for (auto v : c)
+    //    if (!isfinite(v)) return true;
+    for(auto iter=c.begin(); iter!=c.end(); ++iter)
+        if (!isfinite(*iter)) return true;
     return false;
 }
 

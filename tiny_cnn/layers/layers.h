@@ -69,30 +69,40 @@ public:
     }
 
     void init_weight() {
-        for (auto pl : layers_)
-            pl->init_weight();
+        //for (auto pl : layers_)
+        //    pl->init_weight();
+        for(auto pl=layers_.begin(); pl!=layers_.end(); ++pl)
+            (*pl)->init_weight();
     }
 
     bool is_exploded() const {
-        for (auto pl : layers_)
-            if (pl->is_exploded()) return true;
+        //for (auto pl : layers_)
+        //    if (pl->is_exploded()) return true;
+        for(auto pl=layers_.begin(); pl!=layers_.end(); ++pl)
+            if ((*pl)->is_exploded()) return true;
         return false;
     }
 
     void divide_hessian(int denominator) {
-        for (auto pl : layers_)
-            pl->divide_hessian(denominator);
+        //for (auto pl : layers_)
+        //    pl->divide_hessian(denominator);
+        for(auto pl=layers_.begin(); pl!=layers_.end(); ++pl)
+            (*pl)->divide_hessian(denominator);
     }
 
     template <typename Optimizer>
     void update_weights(Optimizer *o, size_t worker_size, size_t batch_size) {
-        for (auto pl : layers_)
-            pl->update_weight(o, static_cast<cnn_size_t>(worker_size), batch_size);
+        //for (auto pl : layers_)
+        //    pl->update_weight(o, static_cast<cnn_size_t>(worker_size), batch_size);
+        for(auto pl=layers_.begin(); pl!=layers_.end(); ++pl)
+            (*pl)->update_weight(o, static_cast<cnn_size_t>(worker_size), batch_size);
     }
     
     void set_parallelize(bool parallelize) {
-        for (auto pl : layers_)
-            pl->set_parallelize(parallelize);
+        //for (auto pl : layers_)
+        //    pl->set_parallelize(parallelize);
+        for(auto pl=layers_.begin(); pl!=layers_.end(); ++pl)
+            (*pl)->set_parallelize(parallelize);
     }
 
     // get depth(number of layers) of networks

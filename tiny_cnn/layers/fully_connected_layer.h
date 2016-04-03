@@ -39,41 +39,41 @@ public:
     fully_connected_layer(cnn_size_t in_dim, cnn_size_t out_dim, bool has_bias = true)
         : Base(in_dim, out_dim, size_t(in_dim) * out_dim, has_bias ? out_dim : 0), has_bias_(has_bias) {}
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         return size_t(in_size_) * out_size_ + size_t(has_bias_) * out_size_;
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return in_size_;
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return out_size_;
     }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t index) override {
+    const vec_t& forward_propagation(const vec_t& in, size_t index) {
         vec_t &a = a_[index];
         vec_t &out = output_[index];
 
         for_i(parallelize_, out_size_, [&](int i) {
             a[i] = float_t(0);
-            for (cnn_size_t c = 0; c < in_size_; c++) {
-                a[i] += W_[c*out_size_ + i] * in[c];
+            for (cnn_size_t c = 0; c < this->in_size_; c++) {
+                a[i] += this->W_[c*this->out_size_ + i] * in[c];
             }
 
-            if (has_bias_)
-                a[i] += b_[i];
+            if (this->has_bias_)
+                a[i] += this->b_[i];
         });
 
         for_i(parallelize_, out_size_, [&](int i) {
-            out[i] = h_.f(a, i);
+            out[i] = this->h_.f(a, i);
         });
         CNN_LOG_VECTOR(out, "[fc]forward");
 
         return next_ ? next_->forward_propagation(out, index) : out;
     }
 
-    const vec_t& back_propagation(const vec_t& curr_delta, size_t index) override {
+    const vec_t& back_propagation(const vec_t& curr_delta, size_t index) {
         const vec_t& prev_out = prev_->output(static_cast<int>(index));
         const activation::function& prev_h = prev_->activation_function();
         vec_t& prev_delta = prev_delta_[index];
@@ -90,10 +90,10 @@ public:
         for_(parallelize_, 0, size_t(out_size_), [&](const blocked_range& r) {
             // accumulate weight-step using delta
             // dW[c * out_size + i] += current_delta[i] * prev_out[c]
-            for (cnn_size_t c = 0; c < in_size_; c++)
-                vectorize::muladd(&curr_delta[r.begin()], prev_out[c], r.end() - r.begin(), &dW[c*out_size_ + r.begin()]);
+            for (cnn_size_t c = 0; c < this->in_size_; c++)
+                vectorize::muladd(&curr_delta[r.begin()], prev_out[c], r.end() - r.begin(), &dW[c*this->out_size_ + r.begin()]);
 
-            if (has_bias_) {
+            if (this->has_bias_) {
                 for (int i = r.begin(); i < r.end(); i++)
                     db[i] += curr_delta[i];
             }
@@ -107,7 +107,7 @@ public:
         return prev_->back_propagation(prev_delta_[index], index);
     }
 
-    const vec_t& back_propagation_2nd(const vec_t& current_delta2) override {
+    const vec_t& back_propagation_2nd(const vec_t& current_delta2) {
         const vec_t& prev_out = prev_->output(0);
         const activation::function& prev_h = prev_->activation_function();
 
@@ -134,7 +134,7 @@ public:
         return prev_->back_propagation_2nd(prev_delta2_);
     }
 
-    std::string layer_type() const override { return "fully-connected"; }
+    std::string layer_type() const { return "fully-connected"; }
 
 protected:
     bool has_bias_;

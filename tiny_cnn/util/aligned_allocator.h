@@ -58,14 +58,14 @@ public:
     aligned_allocator(const aligned_allocator<U, alignment>&) {}
 
     const_pointer address(const_reference value) const {
-        return std::addressof(value);
+        return &value;//std::addressof(value);
     }
 
     pointer address(reference value) const {
-        return std::addressof(value);
+        return &value;//std::addressof(value);
     }
 
-    pointer allocate(size_type size, const void* = nullptr) {
+    pointer allocate(size_type size, const void* = NULL) {
         void* p = aligned_alloc(alignment, sizeof(T) * size);
         if (!p && size > 0)
             throw nn_error("failed to allocate");

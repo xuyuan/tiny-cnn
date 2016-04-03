@@ -45,29 +45,41 @@ public:
           weight2io_(weight_dim), out2wi_(out_dim), in2wo_(in_dim), bias2out_(bias_dim), out2bias_(out_dim),
           scale_factor_(scale_factor) {}
 
-    size_t param_size() const override {
+    size_t param_size() const {
         size_t total_param = 0;
-        for (auto w : weight2io_)
-            if (w.size() > 0) total_param++;
-        for (auto b : bias2out_)
-            if (b.size() > 0) total_param++;
+        //for (auto w : weight2io_)
+        //    if (w.size() > 0) total_param++;
+        for (auto w=weight2io_.begin(); w!=weight2io_.end(); ++w) {
+            if (w->size() > 0) total_param++;
+        }
+        //for (auto b : bias2out_)
+        //    if (b.size() > 0) total_param++;
+        for (auto b=bias2out_.begin(); b!=bias2out_.end(); ++b) {
+             if (b->size() > 0) total_param++;
+        }
         return total_param;
     }
 
-    size_t connection_size() const override {
+    size_t connection_size() const {
         size_t total_size = 0;
-        for (auto io : weight2io_)
-            total_size += io.size();
-        for (auto b : bias2out_)
-            total_size += b.size();
+        //for (auto io : weight2io_)
+        //    total_size += io.size();
+        for (auto w=weight2io_.begin(); w!=weight2io_.end(); ++w) {
+            total_size += w->size();
+        }
+        //for (auto b : bias2out_)
+        //    total_size += b.size();
+        for (auto b=bias2out_.begin(); b!=bias2out_.end(); ++b) {
+             total_size += b->size();
+        }
         return total_size;
     }
 
-    size_t fan_in_size() const override {
+    size_t fan_in_size() const {
         return max_size(out2wi_);
     }
 
-    size_t fan_out_size() const override {
+    size_t fan_out_size() const {
         return max_size(in2wo_);
     }
 
@@ -82,23 +94,26 @@ public:
         bias2out_[bias_index].push_back(output_index);
     }
 
-    const vec_t& forward_propagation(const vec_t& in, size_t index) override {
+    const vec_t& forward_propagation(const vec_t& in, size_t index) {
         vec_t& a = a_[index];
      
         for_i(parallelize_, out_size_, [&](int i) {
-            const wi_connections& connections = out2wi_[i];
+            const wi_connections& connections = this->out2wi_[i];
 
             a[i] = float_t(0);
 
-            for (auto connection : connections)// 13.1%
-                a[i] += W_[connection.first] * in[connection.second]; // 3.2%
+            //for (auto connection : connections)// 13.1%
+            //    a[i] += W_[connection.first] * in[connection.second]; // 3.2%
+            for (auto connection=connections.begin(); connection!=connections.end(); ++connection) {// 13.1%
+                a[i] += this->W_[connection->first] * in[connection->second]; // 3.2%
+            }
 
-            a[i] *= scale_factor_;
-            a[i] += b_[out2bias_[i]];
+            a[i] *= this->scale_factor_;
+            a[i] += this->b_[this->out2bias_[i]];
         });
 
         for_i(parallelize_, out_size_, [&](int i) {
-            output_[index][i] = h_.f(a, i);
+            this->output_[index][i] = this->h_.f(a, i);
         });
         CNN_LOG_VECTOR(in, "[pc]in");
         CNN_LOG_VECTOR(W_, "[pc]w");
@@ -108,32 +123,36 @@ public:
         return next_ ? next_->forward_propagation(output_[index], index) : output_[index]; // 15.6%
     }
 
-    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) override {
+    virtual const vec_t& back_propagation(const vec_t& current_delta, size_t index) {
         const vec_t& prev_out = prev_->output(index);
         const activation::function& prev_h = prev_->activation_function();
         vec_t& prev_delta = prev_delta_[index];
 
         for_(parallelize_, 0, size_t(in_size_), [&](const blocked_range& r) {
             for (int i = r.begin(); i != r.end(); i++) {
-                const wo_connections& connections = in2wo_[i];
+                const wo_connections& connections = this->in2wo_[i];
                 float_t delta = float_t(0);
 
-                for (auto connection : connections) 
-                    delta += W_[connection.first] * current_delta[connection.second]; // 40.6%
+                //for (auto connection : connections)
+                //    delta += W_[connection.first] * current_delta[connection.second]; // 40.6%
+                for (auto connection=connections.begin(); connection!=connections.end(); ++connection)
+                    delta += this->W_[connection->first] * current_delta[connection->second]; // 40.6%
 
-                prev_delta[i] = delta * scale_factor_ * prev_h.df(prev_out[i]); // 2.1%
+                prev_delta[i] = delta * this->scale_factor_ * prev_h.df(prev_out[i]); // 2.1%
             }
         });
 
         for_(parallelize_, 0, weight2io_.size(), [&](const blocked_range& r) {
             for (int i = r.begin(); i < r.end(); i++) {
-                const io_connections& connections = weight2io_[i];
+                const io_connections& connections = this->weight2io_[i];
                 float_t diff = float_t(0);
 
-                for (auto connection : connections) // 11.9%
-                    diff += prev_out[connection.first] * current_delta[connection.second];
+                //for (auto connection : connections) // 11.9%
+                //    diff += prev_out[connection.first] * current_delta[connection.second];
+                for (auto connection=connections.begin(); connection!=connections.end(); ++connection)
+                    diff += prev_out[connection->first] * current_delta[connection->second];
 
-                dW_[index][i] += diff * scale_factor_;
+                this->dW_[index][i] += diff * this->scale_factor_;
             }
         });
 
@@ -141,8 +160,10 @@ public:
             const std::vector<cnn_size_t>& outs = bias2out_[i];
             float_t diff = float_t(0);
 
-            for (auto o : outs)
-                diff += current_delta[o];    
+            //for (auto o : outs)
+            //    diff += current_delta[o];
+            for (auto o=outs.begin(); o!=outs.end(); ++o)
+                diff += current_delta[*o];
 
             db_[index][i] += diff;
         } 
@@ -155,7 +176,7 @@ public:
         return prev_->back_propagation(prev_delta_[index], index);
     }
 
-    const vec_t& back_propagation_2nd(const vec_t& current_delta2) override {
+    const vec_t& back_propagation_2nd(const vec_t& current_delta2) {
         const vec_t& prev_out = prev_->output(0);
         const activation::function& prev_h = prev_->activation_function();
 
@@ -163,8 +184,10 @@ public:
             const io_connections& connections = weight2io_[i];
             float_t diff = float_t(0);
 
-            for (auto connection : connections)
-                diff += sqr(prev_out[connection.first]) * current_delta2[connection.second];
+            //for (auto connection : connections)
+            //    diff += sqr(prev_out[connection.first]) * current_delta2[connection.second];
+            for (auto connection=connections.begin(); connection!=connections.end(); ++connection)
+                diff += sqr(prev_out[connection->first]) * current_delta2[connection->second];
 
             diff *= sqr(scale_factor_);
             Whessian_[i] += diff;
@@ -174,8 +197,10 @@ public:
             const std::vector<cnn_size_t>& outs = bias2out_[i];
             float_t diff = float_t(0);
 
-            for (auto o : outs)
-                diff += current_delta2[o];    
+            //for (auto o : outs)
+            //    diff += current_delta2[o];
+            for (auto o=outs.begin(); o!=outs.end(); ++o)
+                diff += current_delta2[*o];
 
             bhessian_[i] += diff;
         }
@@ -184,8 +209,10 @@ public:
             const wo_connections& connections = in2wo_[i];
             prev_delta2_[i] = float_t(0);
 
-            for (auto connection : connections) 
-                prev_delta2_[i] += sqr(W_[connection.first]) * current_delta2[connection.second];
+            //for (auto connection : connections)
+            //    prev_delta2_[i] += sqr(W_[connection.first]) * current_delta2[connection.second];
+            for (auto connection=connections.begin(); connection!=connections.end(); ++connection)
+                prev_delta2_[i] += sqr(W_[connection->first]) * current_delta2[connection->second];
 
             prev_delta2_[i] *= sqr(scale_factor_ * prev_h.df(prev_out[i]));
         }
