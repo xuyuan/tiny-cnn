@@ -28,10 +28,10 @@
 #include <string>
 #include <iostream>
 #include <cstdio>
-#include "picotest/picotest.h"
-#include "tiny_cnn/tiny_cnn.h"
+ #include "gtest/gtest.h"
+#include "tiny_dnn/tiny_dnn.h"
 
-namespace tiny_cnn {
+namespace tiny_dnn {
 
 template <typename Container, typename T>
 inline bool is_near_container(const Container& expected, const Container& actual, T abs_error) {
@@ -74,9 +74,9 @@ inline std::string unique_path() {
 }
 
 vec_t forward_pass(layer& src, const vec_t& vec) {
-    src.setup(false, 1);
-    (*src.get_inputs()[0]->get_data())[0] = vec;
-    src.forward(0);
+    src.setup(false);
+    (*src.inputs()[0]->get_data())[0] = vec;
+    src.forward();
     return src.output()[0][0];
 }
 
@@ -107,6 +107,39 @@ void serialization_test(T& src, T& dst)
     std::remove(tmp_file_path.c_str());
 
     vec_t v(src.in_data_size());
+    uniform_rand(v.begin(), v.end(), -1.0f, 1.0f);
+
+    EXPECT_TRUE(src.has_same_weights(dst, 1E-5f));
+
+    vec_t r1 = forward_pass(src, v);
+    vec_t r2 = forward_pass(dst, v);
+
+    EXPECT_TRUE(is_near_container(r1, r2, 1E-4f));
+}
+
+
+template <typename T>
+void quantized_serialization_test(T& src, T& dst)
+{
+    //EXPECT_FALSE(src.has_same_weights(dst, 1E-5));
+
+    std::string tmp_file_path = unique_path();
+
+    // write
+    {
+        std::ofstream ofs(tmp_file_path.c_str());
+        src.save(ofs);
+    }
+
+    // read
+    {
+        std::ifstream ifs(tmp_file_path.c_str());
+        dst.load(ifs);
+    }
+
+    std::remove(tmp_file_path.c_str());
+
+    vec_t v(src.in_data_size());
     uniform_rand(v.begin(), v.end(), -1.0, 1.0);
 
     EXPECT_TRUE(src.has_same_weights(dst, 1E-5));
@@ -114,7 +147,42 @@ void serialization_test(T& src, T& dst)
     vec_t r1 = forward_pass(src, v);
     vec_t r2 = forward_pass(dst, v);
 
-    EXPECT_TRUE(is_near_container(r1, r2, 1E-4));
+    EXPECT_TRUE(is_near_container(r1, r2, 1E-2));
+}
+
+template <typename T>
+inline T epsilon() {
+    return 0;
+}
+
+template <>
+inline float epsilon() {
+    return 1e-2f;
+}
+
+template <>
+inline double epsilon() {
+    return 1e-4;
+}
+
+inline bool resolve_path(const std::string& filename, std::string& path) {
+    static const char* path_list[] = {
+       "",
+       "./test/",
+       "../test/",
+       "../../test/",
+       "../../../test/",
+       "../../tiny-dnn/test/",
+       "../../../tiny-dnn/test/" 
+    };
+
+    for (size_t i = 0; i < sizeof(path_list) / sizeof(path_list[0]); i++) {
+        if (exists(path_list[i] + filename)) {
+            path = path_list[i] + filename;
+            return true;
+        }
+    }
+    return false;
 }
 
 namespace {
@@ -140,4 +208,22 @@ namespace {
     }
 }
 
-} // namespace tiny_cnn
+#ifndef CNN_NO_SERIALIZATION
+inline std::string layer_to_json(const layer& src) {
+    std::ostringstream os;
+    {
+        cereal::JSONOutputArchive oa(os);
+        layer::save_layer(oa, src);
+    }
+    return os.str();
+}
+
+inline std::shared_ptr<layer> json_to_layer(const std::string& src) {
+    std::stringstream ss;
+    ss << src;
+    cereal::JSONInputArchive oa(ss);
+    return layer::load_layer(oa);
+}
+#endif
+
+} // namespace tiny_dnn

@@ -1,11 +1,17 @@
-tiny-cnn: A header-only, dependency-free deep learning framework for C++11
-========
+<div align="center">
+  <img src="https://github.com/tiny-dnn/tiny-dnn/blob/master/docs/logo/TinyDNN-logo-letters-alpha-version.png"><br><br>
+</div>
+-----------------
 
-| **Linux/Mac OS** | **Windows** |
+[![Join the chat at https://gitter.im/tiny-dnn/users](https://badges.gitter.im/tiny-dnn/users.svg)](https://gitter.im/tiny-dnn/users) [![Docs](https://img.shields.io/badge/docs-latest-blue.svg)](http://tiny-dnn.readthedocs.io/) [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](https://raw.githubusercontent.com/tiny-dnn/tiny-dnn/master/LICENSE) [![Coverage Status](https://coveralls.io/repos/github/tiny-dnn/tiny-dnn/badge.svg?branch=master)](https://coveralls.io/github/tiny-dnn/tiny-dnn?branch=master)
+
+**tiny-dnn** is a C++11 implementation of deep learning. It is suitable for deep learning on limited computational resource, embedded systems and IoT devices.
+
+| **`Linux/Mac OS`** | **`Windows`** |
 |------------------|-------------|
-|[![Build Status](https://travis-ci.org/nyanp/tiny-cnn.svg?branch=master)](https://travis-ci.org/nyanp/tiny-cnn)|[![Build status](https://ci.appveyor.com/api/projects/status/s4mow1544tvoqeeu?svg=true)](https://ci.appveyor.com/project/nyanp/tiny-cnn)|
+|[![Build Status](https://travis-ci.org/tiny-dnn/tiny-dnn.svg?branch=master)](https://travis-ci.org/tiny-dnn/tiny-dnn)|[![Build status](https://ci.appveyor.com/api/projects/status/a5syoifm8ct7b4l2?svg=true)](https://ci.appveyor.com/project/tinydnn/tiny-dnn)|
 
-tiny-cnn is a C++11 implementation of deep learning. It is suitable for deep learning on limited computational resource, embedded systems and IoT devices.
+## Table of contents
 
 * [Features](#features)
 * [Comparison with other libraries](#comparison-with-other-libraries)
@@ -16,12 +22,14 @@ tiny-cnn is a C++11 implementation of deep learning. It is suitable for deep lea
 * [Contributing](#contributing)
 * [References](#references)
 * [License](#license)
-* [Mailing list](#mailing-list)
+* [Gitter rooms](#gitter-rooms)
 
-Check out the [documentation](doc/readme.md) for more info.
+Check out the [documentation](http://tiny-dnn.readthedocs.io/) for more info.
 
 ## What's New
-- [tiny-cnn v0.1.0 released!](https://github.com/nyanp/tiny-cnn/releases/tag/v0.1.0)
+- 2016/9/14 [tiny-dnn v1.0.0alpha is released!](https://github.com/tiny-dnn/tiny-dnn/releases/tag/v1.0.0a)
+- 2016/8/7  tiny-dnn is now moved to organization account, and rename into tiny-dnn :)
+- 2016/7/27 [tiny-dnn v0.1.1 released!](https://github.com/tiny-dnn/tiny-dnn/releases/tag/v0.1.1)
 
 ## Features
 - reasonably fast, without GPU
@@ -29,18 +37,18 @@ Check out the [documentation](doc/readme.md) for more info.
     - 98.8% accuracy on MNIST in 13 minutes training (@Core i7-3520M)
 - portable & header-only
     - Run anywhere as long as you have a compiler which supports C++11
-    - Just include tiny_cnn.h and write your model in C++. There is nothing to install.
+    - Just include tiny_dnn.h and write your model in C++. There is nothing to install.
 - easy to integrate with real applications
     - no output to stdout/stderr
     - a constant throughput (simple parallelization model, no garbage collection)
     - work without throwing an exception
-    - [can import caffe's model](https://github.com/nyanp/tiny-cnn/tree/master/examples/caffe_converter)
+    - [can import caffe's model](https://github.com/tiny-dnn/tiny-dnn/tree/master/examples/caffe_converter)
 - simply implemented
     - be a good library for learning neural networks
 
 ## Comparison with other libraries
 
-||tiny-cnn|[caffe](https://github.com/BVLC/caffe)|[Theano](https://github.com/Theano/Theano)|[TensorFlow](https://www.tensorflow.org/)|
+||tiny-dnn|[caffe](https://github.com/BVLC/caffe)|[Theano](https://github.com/Theano/Theano)|[TensorFlow](https://www.tensorflow.org/)|
 |---|---|---|---|---|
 |Prerequisites|__Nothing__(Optional:TBB,OpenMP)|BLAS,Boost,protobuf,glog,gflags,hdf5, (Optional:CUDA,OpenCV,lmdb,leveldb etc)|Numpy,Scipy,BLAS,(optional:nose,Sphinx,CUDA etc)|numpy,six,protobuf,(optional:CUDA,Bazel)|
 |Modeling By|C++ code|Config File|Python Code|Python Code|
@@ -53,17 +61,25 @@ Check out the [documentation](doc/readme.md) for more info.
 
 ## Supported networks
 ### layer-types
-* fully-connected layer
-* convolutional layer
-* average pooling layer
-* max-pooling layer
-* contrast normalization layer
-* dropout layer
-* linear operation layer
-* deconvolution layer
-* unpooling layer
-* elementwise-add layer
-* concat layer
+- core
+    - fully-connected
+    - dropout
+    - linear operation
+    - power
+- convolution
+    - convolutional
+    - average pooling
+    - max pooling
+    - deconvolutional
+    - average unpooling
+	- max unpooling
+- normalization
+    - contrast normalization (only forward pass)
+    - batch normalization
+- split/merge
+    - concat
+    - slice
+    - elementwise-add
 
 ### activation functions
 * tanh
@@ -76,24 +92,21 @@ Check out the [documentation](doc/readme.md) for more info.
 
 ### loss functions
 * cross-entropy
-* mean-squared-error
+* mean squared error
+* mean absolute error
+* mean absolute error with epsilon range
 
 ### optimization algorithms
 * stochastic gradient descent (with/without L2 normalization and momentum)
-* stochastic gradient levenberg marquardt
 * adagrad
 * rmsprop
 * adam
 
 ## Dependencies
-##### Minimum requirements
 Nothing. All you need is a C++11 compiler.
 
-##### Requirements to build sample/test programs
-[OpenCV](http://opencv.org/)
-
 ## Build
-tiny-cnn is header-ony, so *there's nothing to build*. If you want to execute sample program or unit tests, you need to install [cmake](https://cmake.org/) and type the following commands:
+tiny-dnn is header-ony, so *there's nothing to build*. If you want to execute sample program or unit tests, you need to install [cmake](https://cmake.org/) and type the following commands:
 
 ```
 cmake .
@@ -105,21 +118,27 @@ Some cmake options are available:
 
 |options|description|default|additional requirements to use|
 |-----|-----|----|----|
-|USE_TBB|Use [Intel TBB](https://www.threadingbuildingblocks.org/) for parallelization|OFF*|[Intel TBB](https://www.threadingbuildingblocks.org/)|
-|USE_OMP|Use OpenMP for parallelization|OFF*|[OpenMP Compiler](http://openmp.org/wp/openmp-compilers/)|
+|USE_TBB|Use [Intel TBB](https://www.threadingbuildingblocks.org/) for parallelization|OFF<sup>1</sup>|[Intel TBB](https://www.threadingbuildingblocks.org/)|
+|USE_OMP|Use OpenMP for parallelization|OFF<sup>1</sup>|[OpenMP Compiler](http://openmp.org/wp/openmp-compilers/)|
 |USE_SSE|Use Intel SSE instruction set|ON|Intel CPU which supports SSE|
 |USE_AVX|Use Intel AVX instruction set|ON|Intel CPU which supports AVX|
-|USE_OPENCV|Use OpenCV for sample/test programs|ON|[Open Source Computer Vision Library](http://opencv.org/)|
-|BUILD_TESTS|Build unist tests|OFF|-**|
-|BUILD_EXAMPLES|Build example projects|ON|-|
+|USE_NNPACK|Use NNPACK for convolution operation|OFF|[Acceleration package for neural networks on multi-core CPUs](https://github.com/Maratyszcza/NNPACK)|
+|USE_OPENCL|Enable/Disable OpenCL support (experimental)|OFF|[The open standard for parallel programming of heterogeneous systems](https://www.khronos.org/opencl/)|
+|USE_LIBDNN|Use Greentea LinDNN for convolution operation with GPU via OpenCL (experimental)|OFF|[An universal convolution implementation supporting CUDA and OpenCL](https://github.com/naibaf7/libdnn)|
+|USE_SERIALIZER|Enable model serialization|ON<sup>2</sup>|-|
+|BUILD_TESTS|Build unit tests|OFF<sup>3</sup>|-|
+|BUILD_EXAMPLES|Build example projects|OFF|-|
 |BUILD_DOCS|Build documentation|OFF|[Doxygen](http://www.doxygen.org/)|
 
-*tiny-cnn use c++11 standard library for parallelization by default
-**to build tests, type `git submodule update --init` before build
+<sup>1</sup> tiny-dnn use c++11 standard library for parallelization by default
+
+<sup>2</sup> If you don't use serialization, you can switch off to speedup compilation time.
+
+<sup>3</sup> tiny-dnn uses [Google Test](https://github.com/google/googletest) as default framework to run unit tests. No pre-installation required, it's  automatically downloaded during CMake configuration.
 
 For example, type the following commands if you want to use intel TBB and build tests:
 ```bash
-cmake -DUSE_TBB=ON -DBUILD_EXAMPLES=ON .
+cmake -DUSE_TBB=ON -DBUILD_TESTS=ON .
 ```
 
 ## Customize configurations
@@ -129,13 +148,13 @@ You can edit include/config.h to customize default behavior.
 construct convolutional neural networks
 
 ```cpp
-#include "tiny_cnn/tiny_cnn.h"
-using namespace tiny_cnn;
-using namespace tiny_cnn::activation;
-using namespace tiny_cnn::layers;
+#include "tiny_dnn/tiny_dnn.h"
+using namespace tiny_dnn;
+using namespace tiny_dnn::activation;
+using namespace tiny_dnn::layers;
 
 void construct_cnn() {
-    using namespace tiny_cnn;
+    using namespace tiny_dnn;
 
     network<sequential> net;
 
@@ -162,21 +181,20 @@ void construct_cnn() {
     net.train<mse>(optimizer, train_images, train_labels, 30, 50);
 
     // save
-    std::ofstream ofs("weights");
-    ofs << net;
+    net.save("net");
 
     // load
-    // std::ifstream ifs("weights");
-    // ifs >> net;
+    // network<sequential> net2;
+    // net2.load("net");
 }
 ```
 construct multi-layer perceptron(mlp)
 
 ```cpp
-#include "tiny_cnn/tiny_cnn.h"
-using namespace tiny_cnn;
-using namespace tiny_cnn::activation;
-using namespace tiny_cnn::layers;
+#include "tiny_dnn/tiny_dnn.h"
+using namespace tiny_dnn;
+using namespace tiny_dnn::activation;
+using namespace tiny_dnn::layers;
 
 void construct_mlp() {
     network<sequential> net;
@@ -192,9 +210,9 @@ void construct_mlp() {
 another way to construct mlp
 
 ```cpp
-#include "tiny_cnn/tiny_cnn.h"
-using namespace tiny_cnn;
-using namespace tiny_cnn::activation;
+#include "tiny_dnn/tiny_dnn.h"
+using namespace tiny_dnn;
+using namespace tiny_dnn::activation;
 
 void construct_mlp() {
     auto mynet = make_mlp<tan_h>({ 32 * 32, 300, 10 });
@@ -204,11 +222,11 @@ void construct_mlp() {
 }
 ```
 
-more sample, read examples/main.cpp or [MNIST example](https://github.com/nyanp/tiny-cnn/tree/master/examples/mnist) page.
+more sample, read examples/main.cpp or [MNIST example](https://github.com/tiny-dnn/tiny-dnn/tree/master/examples/mnist) page.
 
 ## Contributing
-Since deep learning community is rapidly growing, we'd love to get contributions from you to accelerate tiny-cnn development!
-For a quick guide to contributing, take a look at the [Contribution Documents](doc/CONTRIBUTING.md).
+Since deep learning community is rapidly growing, we'd love to get contributions from you to accelerate tiny-dnn development!
+For a quick guide to contributing, take a look at the [Contribution Documents](docs/developer_guides/How-to-contribute.md).
 
 ## References
 [1] Y. Bengio, [Practical Recommendations for Gradient-Based Training of Deep Architectures.](http://arxiv.org/pdf/1206.5533v2.pdf) 
@@ -224,7 +242,17 @@ other useful reference lists:
 ## License
 The BSD 3-Clause License
 
-## Mailing list
-google group for questions and discussions:
+## Gitter rooms
+We have a gitter rooms for discussing new features & QA.
+Feel free to join us!
 
-https://groups.google.com/forum/#!forum/tiny-cnn-users
+<table>
+<tr>
+    <td><b> developers </b></td>
+    <td> https://gitter.im/tiny-dnn/developers </td>
+</tr>
+<tr>
+    <td><b> users </b></td>
+    <td> https://gitter.im/tiny-dnn/users </td>
+</tr>
+</table>
