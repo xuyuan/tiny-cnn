@@ -56,7 +56,7 @@
 /**
  * comment out if you want tiny-dnn to be quiet 
  */
-#define CNN_USE_STDOUT
+//#define CNN_USE_STDOUT
 
 
 /**
