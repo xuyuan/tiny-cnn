@@ -95,13 +95,25 @@ inline std::shared_ptr<weight_init::function> create_filler(const std::string& f
 
 template <typename param>
 inline bool get_kernel_size_2d(const param& p, layer_size_t *kernel) {
-    if (p.has_kernel_w() && p.has_kernel_w()) {
+    if (p.has_kernel_w() && p.has_kernel_h()) {
         if (p.kernel_w() != p.kernel_h())
             throw std::runtime_error("unsupported kernel shape");
         *kernel = p.kernel_w();
         return true;
     }
     return false;
+}
+
+template <typename param>
+inline bool get_kernel_size_2d(const param &p,
+                               layer_size_t *kernel_w,
+                               layer_size_t *kernel_h) {
+  if (p.has_kernel_w() && p.has_kernel_h()) {
+    *kernel_w = p.kernel_w();
+    *kernel_h = p.kernel_h();
+    return true;
+  }
+  return false;
 }
 
 inline layer_size_t get_kernel_size_2d(const caffe::ConvolutionParameter& p) {
@@ -123,16 +135,17 @@ inline std::shared_ptr<layer_base> create_max_pool(int pool_size, int stride, co
     return mp;
 }
 
-inline std::shared_ptr<layer_base> create_ave_pool(int pool_size, int stride, const shape_t& bottom_shape, shape_t *top_shape)
+inline std::shared_ptr<layer_base> create_ave_pool(int pool_size_w, int pool_size_h, int stride_w, int stride_h, const shape_t& bottom_shape, shape_t *top_shape)
 {
+std::cout<<"create_ave_pool0"<<std::endl;
     typedef average_pooling_layer<activation::identity> ave_pool;
-    auto ap = std::make_shared<ave_pool>(bottom_shape.width_, bottom_shape.height_, bottom_shape.depth_, pool_size, stride);
-
+    auto ap = std::make_shared<ave_pool>(bottom_shape.width_, bottom_shape.height_, bottom_shape.depth_, pool_size_w, pool_size_h, stride_w, stride_h);
+std::cout<<"create_ave_pool1"<<std::endl;
     // tiny-cnn has trainable parameter in average-pooling layer
-    float_t weight = float_t(1) / sqr(pool_size);
+    float_t weight = float_t(1) / (pool_size_w * pool_size_h);
     std::fill(ap->weight().begin(), ap->weight().end(), weight);
     std::fill(ap->bias().begin(), ap->bias().end(), float_t(0));
-    *top_shape = ap->out_shape();
+    *top_shape = ap->out_shape();std::cout<<"create_ave_pool2"<<std::endl;
     return ap;
 }
 
@@ -151,11 +164,41 @@ inline std::shared_ptr<layer_base> create_tanh(const caffe::LayerParameter& laye
     return tanh;
 }
 
+inline std::shared_ptr<layer_base> create_ave_pooling(const caffe::LayerParameter& layer, const shape_t& bottom_shape, shape_t *top_shape) {
+    if (!layer.has_pooling_param())
+        throw std::runtime_error("pool param missing");
+
+    auto pool_param = layer.pooling_param();
+
+    layer_size_t pool_size_x = 0;
+    layer_size_t pool_size_y = 0;
+    layer_size_t h_stride = 0;
+    layer_size_t w_stride = 0;
+
+    if (!get_kernel_size_2d(pool_param, &pool_size_x, &pool_size_y))
+        pool_size_x = pool_size_y = pool_param.kernel_size();
+
+    if (pool_param.has_stride() || pool_param.has_stride_h())
+        h_stride = pool_param.has_stride() ? pool_param.stride() : pool_param.stride_h();
+
+    if (pool_param.has_stride() || pool_param.has_stride_w())
+        w_stride = pool_param.has_stride() ? pool_param.stride() : pool_param.stride_w();
+
+std::cout<<"create_ave_pooling (" << pool_size_x << ", " <<pool_size_y << ", " <<w_stride << ", " <<h_stride << ", " <<bottom_shape <<std::endl;
+    return create_ave_pool(pool_size_x, pool_size_y, w_stride, h_stride, bottom_shape, top_shape);
+}
+
 inline std::shared_ptr<layer_base> create_pooling(const caffe::LayerParameter& layer, const shape_t& bottom_shape, shape_t *top_shape) {
     if (!layer.has_pooling_param())
         throw std::runtime_error("pool param missing");
 
     auto pool_param = layer.pooling_param();
+    
+    if (pool_param.has_pool()) {
+        auto type = pool_param.pool();
+        if (type == caffe::PoolingParameter_PoolMethod_AVE)
+            return create_ave_pooling(layer, bottom_shape, top_shape);
+    }
 
     layer_size_t pool_size = 0;
     layer_size_t h_stride, w_stride;
@@ -177,7 +220,7 @@ inline std::shared_ptr<layer_base> create_pooling(const caffe::LayerParameter& l
 
         switch (type) {
         case caffe::PoolingParameter_PoolMethod_MAX: return create_max_pool(pool_size, h_stride, bottom_shape, top_shape);
-        case caffe::PoolingParameter_PoolMethod_AVE: return create_ave_pool(pool_size, h_stride, bottom_shape, top_shape);
+        //case caffe::PoolingParameter_PoolMethod_AVE: return create_ave_pool(pool_size, h_stride, bottom_shape, top_shape);
         default: throw std::runtime_error("unsupported layer type");
         }
     }
@@ -409,7 +452,7 @@ inline std::shared_ptr<layer_base> create_convlayer(const caffe::LayerParameter&
 }
 
 inline bool layer_skipped(const std::string& type) {
-    if (type == "Data" || type == "EuclideanLoss") return true;
+    if (type == "Data" || type == "EuclideanLoss" || type == "Input" || type == "Split" ) return true;
     return false;
 }
 

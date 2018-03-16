@@ -48,7 +48,7 @@ public:
         out_(in_width / pooling_size, in_height / pooling_size, in_channels)
     {
         if ((in_width % pooling_size) || (in_height % pooling_size))
-            pooling_size_mismatch(in_width, in_height, pooling_size);
+            pooling_size_mismatch(in_width, in_height, pooling_size, pooling_size);
 
         init_connection();
     }
